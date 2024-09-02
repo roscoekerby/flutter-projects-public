@@ -25,7 +25,7 @@ Before running the project, ensure you have the following:
 
 1. **Clone the Repository:**
    ```bash
-   git clone https://github.com/roscoekerby/tic-tac-toe.git
+   git clone 
    cd flutter-tic-tac-toe
    ```
 
@@ -80,5 +80,3 @@ This project is open-source and available under the MIT License.
 ## Contact
 
 Your Name - [Website](https://runtime.withroscoe.com)
-
-Project Link: [https://github.com/roscoekerby/flutter-projects-public/tree/main/tictactoe](https://github.com/roscoekerby/flutter-projects-public/tree/main/tictactoe)
