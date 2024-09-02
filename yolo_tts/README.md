@@ -22,7 +22,7 @@ Before running the project, ensure you have the following:
 
 1. **Clone the Repository:**
    ```bash
-   git clone https://github.com/roscoekerby/yolo_tts.git
+   git clone 
    cd yolo_tts
    ```
 
@@ -95,5 +95,3 @@ This project is open-source. Please ensure you have the right to use and distrib
 ## Contact
 
 Roscoe Kerby - [ROSCODE Website](https://runtime.withroscoe.com)
-
-Project Link: [https://github.com/roscoekerby/yolo_tts](https://github.com/roscoekerby/yolo_tts)
