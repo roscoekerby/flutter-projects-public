@@ -25,7 +25,7 @@ Before running the project, ensure you have the following:
 
 1. **Clone the Repository:**
    ```bash
-   git clone https://github.com/your-username/flutter-tic-tac-toe.git
+   git clone https://github.com/roscoekerby/tic-tac-toe.git
    cd flutter-tic-tac-toe
    ```
 
