@@ -1,2 +1,2 @@
 # flutter-projects-public
-Most of my Flutter projects are private, I thought I would share some basic ones that I do not mind sharing with the public.
+While most of my Flutter projects are in a private repo, I’m sharing a few basic ones that I’m comfortable making public. I’m more than happy to demo private projects for interviews or clients to showcase my skills and experience.
