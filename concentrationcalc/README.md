@@ -1,4 +1,4 @@
-# Concentration Calculator
+# Concentration Calc
 
 Concentration Calculator is a Flutter application designed to help users calculate the concentration of a substance after dilution, along with the corresponding marker readings. This app is particularly useful for scenarios where precise concentration measurements are needed.
 
@@ -25,7 +25,7 @@ Before running the project, ensure you have the following:
 
    ```bash
    git clone 
-   cd concentration-calculator
+   cd concentrationcalc
    ```
 
 2. **Install Dependencies:**
