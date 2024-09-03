@@ -6,12 +6,15 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
 import 'package:permission_handler/permission_handler.dart';
+import 'package:logger/logger.dart';
 
 late List<CameraDescription> cameras;
+final logger = Logger();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   cameras = await availableCameras();
+  logger.i("Available cameras initialized: ${cameras.length} cameras found.");
   runApp(const App());
 }
 
@@ -20,6 +23,7 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    logger.i("Building App widget.");
     return MaterialApp(
       title: 'YOLO Flutter App with Bounding Box Capture',
       theme: ThemeData(
@@ -52,23 +56,28 @@ class _YoloVideoState extends State<YoloVideo> {
   void initState() {
     super.initState();
     vision = FlutterVision();
+    logger.i("FlutterVision initialized.");
     init();
   }
 
   Future<void> init() async {
+    logger.i("Initializing camera controller.");
     controller =
         CameraController(cameras[0], ResolutionPreset.max, enableAudio: false);
     await controller.initialize();
+    logger.i("Camera controller initialized.");
     await loadYoloModel();
     setState(() {
       isLoaded = true;
       isDetecting = false;
       yoloResults = [];
     });
+    logger.i("Initialization complete. Model loaded: $isLoaded.");
   }
 
   @override
   void dispose() {
+    logger.i("Disposing resources.");
     vision.closeYoloModel();
     controller.dispose();
     super.dispose();
@@ -77,7 +86,10 @@ class _YoloVideoState extends State<YoloVideo> {
   @override
   Widget build(BuildContext context) {
     final Size size = MediaQuery.of(context).size;
+    logger.i("Building UI with size: $size.");
+
     if (!isLoaded) {
+      logger.w("Model not loaded. Displaying loading screen.");
       return Scaffold(
         backgroundColor: Colors.transparent,
         body: Stack(
@@ -159,6 +171,7 @@ class _YoloVideoState extends State<YoloVideo> {
   }
 
   Future<void> loadYoloModel() async {
+    logger.i("Loading YOLO model.");
     await vision.loadYoloModel(
       labels: 'assets/labels.txt',
       modelPath: 'assets/yolov5n.tflite',
@@ -169,9 +182,11 @@ class _YoloVideoState extends State<YoloVideo> {
     setState(() {
       isLoaded = true;
     });
+    logger.i("YOLO model loaded successfully.");
   }
 
   Future<void> yoloOnFrame(CameraImage cameraImage) async {
+    logger.d("Running YOLO on frame.");
     final result = await vision.yoloOnFrame(
       bytesList: cameraImage.planes.map((plane) => plane.bytes).toList(),
       imageHeight: cameraImage.height,
@@ -181,17 +196,22 @@ class _YoloVideoState extends State<YoloVideo> {
       classThreshold: 0.2,
     );
     if (result.isNotEmpty) {
+      logger.d("YOLO detection results found: ${result.length} objects.");
       setState(() {
         yoloResults = result;
       });
+    } else {
+      logger.d("No objects detected in the current frame.");
     }
   }
 
   Future<void> startDetection() async {
+    logger.i("Starting detection.");
     setState(() {
       isDetecting = true;
     });
     if (controller.value.isStreamingImages) {
+      logger.w("Camera is already streaming images.");
       return;
     }
     await controller.startImageStream((image) async {
@@ -200,20 +220,25 @@ class _YoloVideoState extends State<YoloVideo> {
         await yoloOnFrame(image);
       }
     });
+    logger.i("Image stream started.");
   }
 
   Future<void> stopDetection() async {
+    logger.i("Stopping detection.");
     setState(() {
       isDetecting = false;
       yoloResults.clear();
     });
     await controller.stopImageStream();
+    logger.i("Image stream stopped.");
   }
 
   List<Widget> displayBoxesAroundRecognizedObjects(Size screen) {
     if (yoloResults.isEmpty) return [];
     double factorX = screen.width / (cameraImage?.height ?? 1);
     double factorY = screen.height / (cameraImage?.width ?? 1);
+
+    logger.d("Displaying boxes around recognized objects.");
 
     return yoloResults.map((result) {
       return Positioned(
@@ -240,8 +265,9 @@ class _YoloVideoState extends State<YoloVideo> {
   }
 
   Future<void> captureImage() async {
+    logger.i("Capturing image.");
     if (cameraImage == null || yoloResults.isEmpty) {
-      print("No image or detection results available");
+      logger.w("No image or detection results available.");
       return;
     }
 
@@ -249,21 +275,24 @@ class _YoloVideoState extends State<YoloVideo> {
     var status = await Permission.storage.status;
     if (!status.isGranted) {
       await Permission.storage.request();
+      logger.i("Storage permission requested.");
     }
 
-    // Get the Pictures directory on the external storage (SD card)
-    final directory = await getExternalStorageDirectory();
+    // Get the Pictures directory
+    final Directory? directory = await getExternalStorageDirectory();
     if (directory == null) {
-      print("Unable to access external storage");
+      logger.e("Unable to access external storage.");
       return;
     }
 
-    // Define the path for saving the images
-    final String appImagePath = '/storage/emulated/0/Pictures/YOLO_Detections';
+    // Get the path to the Pictures directory
+    final String appImagePath =
+        '${directory.parent.parent.parent.parent.path}/Pictures/YOLO_Detections';
     await Directory(appImagePath).create(recursive: true);
 
     // Convert YUV420 to RGB
     img.Image image = convertYUV420ToImage(cameraImage!);
+    logger.d("Image converted from YUV420 to RGB.");
 
     for (var result in yoloResults) {
       // Calculate the bounding box dimensions
@@ -284,16 +313,21 @@ class _YoloVideoState extends State<YoloVideo> {
       img.Image croppedImage =
           img.copyCrop(image, x: x, y: y, width: w, height: h);
 
-      // Save the cropped image
+      // Format the confidence as a percentage
+      double confidence = (result['box'][4] as double) * 100;
+      String confidenceString = confidence.toStringAsFixed(2);
+
+      // Save the cropped image with confidence score in the filename
       final String fileName =
-          '${result['tag']}_${DateTime.now().millisecondsSinceEpoch}.png';
+          '${result['tag']}_${confidenceString}pct_${DateTime.now().millisecondsSinceEpoch}.png';
       final String filePath = '$appImagePath/$fileName';
       File(filePath).writeAsBytesSync(img.encodePng(croppedImage));
-      print('Saved image: $filePath');
+      logger.i('Saved image: $filePath');
     }
   }
 
   img.Image convertYUV420ToImage(CameraImage cameraImage) {
+    logger.d("Converting YUV420 image to RGB.");
     final int width = cameraImage.width;
     final int height = cameraImage.height;
     final int uvRowStride = cameraImage.planes[1].bytesPerRow;
@@ -320,6 +354,7 @@ class _YoloVideoState extends State<YoloVideo> {
         image.setPixelRgb(x, y, r, g, b);
       }
     }
+    logger.d("YUV420 to RGB conversion completed.");
     return image;
   }
 }
