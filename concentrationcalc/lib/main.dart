@@ -36,7 +36,7 @@ class ConcentrationCalculatorState extends State<ConcentrationCalculator> {
   final TextEditingController diluentVolumeController = TextEditingController();
   final TextEditingController desiredConcentrationController =
       TextEditingController();
-  final TextEditingController dosageSplitController = TextEditingController();
+  final TextEditingController quantitySplitController = TextEditingController();
 
   double substanceQuantity = 0.0;
   double diluentVolume = 0.0;
@@ -44,10 +44,10 @@ class ConcentrationCalculatorState extends State<ConcentrationCalculator> {
 
   double concentration = 0.0;
   double volume = 0.0;
-  double needleReading = 0.0;
+  double markerReading = 0.0;
 
-  int needleReadingInt = 0;
-  int syringeSize = 100; // Default to 100 unit syringe
+  int markerReadingInt = 0;
+  int unitGaugeSize = 100; // Default to 100 unit unitGauge
 
   bool areFieldsFilled = false;
   bool isButtonPressed = false;
@@ -56,9 +56,9 @@ class ConcentrationCalculatorState extends State<ConcentrationCalculator> {
   bool isSubstanceInMg = true;
   bool isConcentrationInMg = false;
 
-  int dosageSplit = 1;
+  int quantitySplit = 1;
   double splitVolume = 0.0;
-  int splitNeedleReadingInt = 0;
+  int splitMarkerReadingInt = 0;
 
   @override
   void initState() {
@@ -66,8 +66,8 @@ class ConcentrationCalculatorState extends State<ConcentrationCalculator> {
     substanceQuantityController.addListener(checkFieldsFilled);
     diluentVolumeController.addListener(checkFieldsFilled);
     desiredConcentrationController.addListener(checkFieldsFilled);
-    dosageSplitController.addListener(checkFieldsFilled);
-    dosageSplitController.text = '1'; // Default value
+    quantitySplitController.addListener(checkFieldsFilled);
+    quantitySplitController.text = '1'; // Default value
   }
 
   @override
@@ -75,7 +75,7 @@ class ConcentrationCalculatorState extends State<ConcentrationCalculator> {
     substanceQuantityController.dispose();
     diluentVolumeController.dispose();
     desiredConcentrationController.dispose();
-    dosageSplitController.dispose();
+    quantitySplitController.dispose();
     super.dispose();
   }
 
@@ -86,8 +86,8 @@ class ConcentrationCalculatorState extends State<ConcentrationCalculator> {
       diluentVolume = double.tryParse(diluentVolumeController.text) ?? 0.0;
       desiredConcentration =
           double.tryParse(desiredConcentrationController.text) ?? 0.0;
-      dosageSplit = int.tryParse(dosageSplitController.text) ?? 1;
-      if (dosageSplit < 1) dosageSplit = 1;
+      quantitySplit = int.tryParse(quantitySplitController.text) ?? 1;
+      if (quantitySplit < 1) quantitySplit = 1;
 
       double substanceInMg =
           isSubstanceInMg ? substanceQuantity : substanceQuantity / 1000;
@@ -101,11 +101,11 @@ class ConcentrationCalculatorState extends State<ConcentrationCalculator> {
           ? (concentrationInMcg / (concentration * 1000))
           : 0.0;
 
-      needleReading = (volume * 100);
-      needleReadingInt = needleReading.ceil();
+      markerReading = (volume * 100);
+      markerReadingInt = markerReading.ceil();
 
-      splitVolume = volume / dosageSplit;
-      splitNeedleReadingInt = (needleReading / dosageSplit).ceil();
+      splitVolume = volume / quantitySplit;
+      splitMarkerReadingInt = (markerReading / quantitySplit).ceil();
 
       isButtonPressed = true;
       resultUpToDate = true;
@@ -123,7 +123,7 @@ class ConcentrationCalculatorState extends State<ConcentrationCalculator> {
       areFieldsFilled = substanceQuantityController.text.isNotEmpty &&
           diluentVolumeController.text.isNotEmpty &&
           desiredConcentrationController.text.isNotEmpty &&
-          dosageSplitController.text.isNotEmpty;
+          quantitySplitController.text.isNotEmpty;
     });
   }
 
@@ -203,16 +203,16 @@ class ConcentrationCalculatorState extends State<ConcentrationCalculator> {
             ),
             const SizedBox(height: 16),
             buildInputField(
-              controller: dosageSplitController,
-              labelText: 'Dosage Split (1 for no split)',
+              controller: quantitySplitController,
+              labelText: 'Quantity Split (1 for no split)',
             ),
             const SizedBox(height: 24),
             Row(
               children: [
-                const Text('Syringe Size: '),
+                const Text('Unit Gauge Size: '),
                 Expanded(
                   child: DropdownButton<int>(
-                    value: syringeSize,
+                    value: unitGaugeSize,
                     items: const [
                       DropdownMenuItem<int>(
                         value: 25,
@@ -233,7 +233,7 @@ class ConcentrationCalculatorState extends State<ConcentrationCalculator> {
                     ],
                     onChanged: (value) {
                       setState(() {
-                        syringeSize = value ?? 100;
+                        unitGaugeSize = value ?? 100;
                         resultUpToDate = false;
                       });
                     },
@@ -260,8 +260,8 @@ class ConcentrationCalculatorState extends State<ConcentrationCalculator> {
             if (resultUpToDate) ...[
               CustomPaint(
                 size: const Size(double.infinity, 150),
-                painter: NeedlePainter(
-                    splitNeedleReadingInt.toDouble(), syringeSize),
+                painter: MarkerPainter(
+                    splitMarkerReadingInt.toDouble(), unitGaugeSize),
               ),
               const SizedBox(height: 10),
               Text(
@@ -270,17 +270,17 @@ class ConcentrationCalculatorState extends State<ConcentrationCalculator> {
               ),
               const SizedBox(height: 10),
               Text(
-                'Split Volume (1/$dosageSplit): ${splitVolume.toStringAsFixed(4)} ml [Rounded Up]',
+                'Split Volume (1/$quantitySplit): ${splitVolume.toStringAsFixed(4)} ml [Rounded Up]',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 10),
               Text(
-                'Total needle reading: $needleReadingInt U (Units) [Rounded Up]',
+                'Total marker reading: $markerReadingInt U (Units) [Rounded Up]',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 10),
               Text(
-                'Split needle reading (1/$dosageSplit): $splitNeedleReadingInt U [Rounded Up]',
+                'Split marker reading (1/$quantitySplit): $splitMarkerReadingInt U [Rounded Up]',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 10),
@@ -325,11 +325,11 @@ class ConcentrationCalculatorState extends State<ConcentrationCalculator> {
   }
 }
 
-class NeedlePainter extends CustomPainter {
-  final double needleReading;
-  final int syringeSize;
+class MarkerPainter extends CustomPainter {
+  final double markerReading;
+  final int unitGaugeSize;
 
-  NeedlePainter(this.needleReading, this.syringeSize);
+  MarkerPainter(this.markerReading, this.unitGaugeSize);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -337,21 +337,21 @@ class NeedlePainter extends CustomPainter {
       ..color = Colors.black
       ..strokeWidth = 2.0;
 
-    final double syringeWidth = size.width * 0.8;
-    final double syringeHeight = size.height * 0.2;
-    final Offset syringeStart = Offset(size.width * 0.1, size.height * 0.4);
-    final Rect syringeRect = Rect.fromLTWH(
-        syringeStart.dx, syringeStart.dy, syringeWidth, syringeHeight);
-    canvas.drawRect(syringeRect, paint);
+    final double unitGaugeWidth = size.width * 0.8;
+    final double unitGaugeHeight = size.height * 0.2;
+    final Offset unitGaugeStart = Offset(size.width * 0.1, size.height * 0.4);
+    final Rect unitGaugeRect = Rect.fromLTWH(
+        unitGaugeStart.dx, unitGaugeStart.dy, unitGaugeWidth, unitGaugeHeight);
+    canvas.drawRect(unitGaugeRect, paint);
 
     final Paint unitMarkPaint = Paint()
       ..color = Colors.red
       ..strokeWidth = 1.0;
 
-    final double markSpacing = syringeWidth / syringeSize;
-    final double regularMarkHeight = syringeHeight / 4;
-    for (int i = 0; i <= syringeSize; i++) {
-      final double markX = syringeStart.dx + (markSpacing * i);
+    final double markSpacing = unitGaugeWidth / unitGaugeSize;
+    final double regularMarkHeight = unitGaugeHeight / 4;
+    for (int i = 0; i <= unitGaugeSize; i++) {
+      final double markX = unitGaugeStart.dx + (markSpacing * i);
       double markHeight = regularMarkHeight;
 
       if (i % 10 == 0) {
@@ -360,16 +360,17 @@ class NeedlePainter extends CustomPainter {
         markHeight = regularMarkHeight * 1.5;
       }
 
-      final Offset startMark = Offset(markX, syringeStart.dy + syringeHeight);
+      final Offset startMark =
+          Offset(markX, unitGaugeStart.dy + unitGaugeHeight);
       final Offset endMark =
-          Offset(markX, syringeStart.dy + syringeHeight - markHeight);
+          Offset(markX, unitGaugeStart.dy + unitGaugeHeight - markHeight);
       canvas.drawLine(startMark, endMark, unitMarkPaint);
 
       if (i % 10 == 0 && i != 0) {
         final textPainter = TextPainter(
           text: TextSpan(
             text: i.toString(),
-            style: TextStyle(color: Colors.black, fontSize: 10),
+            style: const TextStyle(color: Colors.black, fontSize: 10),
           ),
           textDirection: TextDirection.ltr,
         );
@@ -377,7 +378,7 @@ class NeedlePainter extends CustomPainter {
         textPainter.paint(
             canvas,
             Offset(markX - textPainter.width / 2,
-                syringeStart.dy + syringeHeight + 5));
+                unitGaugeStart.dy + unitGaugeHeight + 5));
       }
     }
 
@@ -385,20 +386,20 @@ class NeedlePainter extends CustomPainter {
       ..color = Colors.blue.withOpacity(0.5)
       ..style = PaintingStyle.fill;
 
-    final double fillWidth = syringeWidth * (needleReading / syringeSize);
+    final double fillWidth = unitGaugeWidth * (markerReading / unitGaugeSize);
     final Rect fillRect = Rect.fromLTWH(
-        syringeStart.dx, syringeStart.dy, fillWidth, syringeHeight);
+        unitGaugeStart.dx, unitGaugeStart.dy, fillWidth, unitGaugeHeight);
     canvas.drawRect(fillRect, fillPaint);
 
-    final Paint needlePaint = Paint()
+    final Paint markerPaint = Paint()
       ..color = Colors.blue
       ..strokeWidth = 2.0;
 
-    final double needleX = syringeStart.dx + fillWidth;
-    final Offset needleMarkStart = Offset(needleX, syringeStart.dy);
-    final Offset needleMarkEnd =
-        Offset(needleX, syringeStart.dy + syringeHeight);
-    canvas.drawLine(needleMarkStart, needleMarkEnd, needlePaint);
+    final double markerX = unitGaugeStart.dx + fillWidth;
+    final Offset markerMarkStart = Offset(markerX, unitGaugeStart.dy);
+    final Offset markerMarkEnd =
+        Offset(markerX, unitGaugeStart.dy + unitGaugeHeight);
+    canvas.drawLine(markerMarkStart, markerMarkEnd, markerPaint);
   }
 
   @override
