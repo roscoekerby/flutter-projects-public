@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:logger/logger.dart';
 
 void main() => runApp(const MyApp());
 
@@ -14,33 +15,39 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class VolumeConcentrationCalculator extends StatefulWidget { // Updated Class Name
+class VolumeConcentrationCalculator extends StatefulWidget {
   const VolumeConcentrationCalculator({super.key});
 
   @override
-  VolumeConcentrationCalculatorState createState() => VolumeConcentrationCalculatorState();
+  VolumeConcentrationCalculatorState createState() =>
+      VolumeConcentrationCalculatorState();
 }
 
-class VolumeConcentrationCalculatorState extends State<VolumeConcentrationCalculator> { // Updated State Class Name
-  final TextEditingController substanceQuantityController = TextEditingController(); // Updated variable name
+class VolumeConcentrationCalculatorState
+    extends State<VolumeConcentrationCalculator> {
+  final TextEditingController substanceQuantityController =
+      TextEditingController();
   final TextEditingController liquidAddedController = TextEditingController();
-  final TextEditingController desiredConcentrationController = TextEditingController(); // Updated variable name
+  final TextEditingController desiredConcentrationController =
+      TextEditingController();
 
-  double totalVolume = 1.0; // Total volume of the container = 1ml
-  double substanceQuantity = 0.0; // Updated variable name
+  double totalVolume = 1.0;
+  double substanceQuantity = 0.0;
   double liquidAdded = 0.0;
-  double desiredConcentration = 0.0; // Updated variable name
+  double desiredConcentration = 0.0;
 
   double concentration = 0.0;
   double volume = 0.0;
-  double unitMarker = 0.0; // Updated variable name
+  double unitMarker = 0.0;
 
-  int unitMarkerInt = 0; // Updated variable name
+  int unitMarkerInt = 0;
 
-  bool areFieldsFilled = false; // Flag to track input completion
-  bool isButtonPressed = false; // Flag to track if the button is pressed
+  bool areFieldsFilled = false;
+  bool isButtonPressed = false;
 
   bool resultUpToDate = false;
+
+  final Logger logger = Logger(); // Initialize Logger
 
   @override
   void initState() {
@@ -60,37 +67,41 @@ class VolumeConcentrationCalculatorState extends State<VolumeConcentrationCalcul
 
   void calculate() {
     setState(() {
-      substanceQuantity = double.parse(substanceQuantityController.text);
-      liquidAdded = double.parse(liquidAddedController.text);
-      desiredConcentration = double.parse(desiredConcentrationController.text);
+      try {
+        substanceQuantity = double.parse(substanceQuantityController.text);
+        liquidAdded = double.parse(liquidAddedController.text);
+        desiredConcentration =
+            double.parse(desiredConcentrationController.text);
 
-      // Calculate concentration
-      concentration = substanceQuantity / liquidAdded;
+        // Calculate concentration
+        concentration = substanceQuantity / liquidAdded;
+        logger.i('Concentration calculated: $concentration');
 
-      // Calculate volume needed for desired concentration
-      volume = desiredConcentration / (concentration * totalVolume);
+        // Calculate volume needed for desired concentration
+        volume = desiredConcentration / (concentration * totalVolume);
+        logger.i('Calculated volume before conversion: $volume');
 
-      unitMarker = volume / 10; // Updated calculation name
+        unitMarker = volume / 10;
+        logger.i('Unit marker calculated: $unitMarker');
 
-      if (unitMarker != 0.0 &&
-          unitMarker != double.infinity &&
-          unitMarker.isFinite) {
-        unitMarkerInt = unitMarker.ceil().toInt(); // Updated calculation name
-      } else {
-        unitMarkerInt = 0;
+        if (unitMarker != 0.0 && unitMarker.isFinite) {
+          unitMarkerInt = unitMarker.ceil().toInt();
+        } else {
+          unitMarkerInt = 0;
+        }
+
+        volume = volume / 1000; // Convert volume to ml
+        logger.i('Final volume (ml): $volume');
+
+        if (!volume.isFinite) {
+          volume = 0;
+        }
+
+        isButtonPressed = true;
+        resultUpToDate = true;
+      } catch (e) {
+        logger.e("Error during calculation $e");
       }
-
-      // Convert volume to ml
-      volume = volume / 1000;
-
-      if (!volume.isFinite) {
-        volume = 0;
-      }
-
-      // Set the button pressed flag to true
-      isButtonPressed = true;
-
-      resultUpToDate = true;
     });
   }
 
@@ -103,11 +114,11 @@ class VolumeConcentrationCalculatorState extends State<VolumeConcentrationCalcul
         liquidAddedController.text.isNotEmpty &&
         desiredConcentrationController.text.isNotEmpty) {
       setState(() {
-        areFieldsFilled = true; // Set flag to true if all fields have values
+        areFieldsFilled = true;
       });
     } else {
       setState(() {
-        areFieldsFilled = false; // Reset flag if any field is empty
+        areFieldsFilled = false;
       });
     }
   }
@@ -115,98 +126,112 @@ class VolumeConcentrationCalculatorState extends State<VolumeConcentrationCalcul
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: "Volumix", // Updated App Name
+      title: "Volumix",
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('Volume/Concentration Calculator'), // Updated Title
+          title: const Text('Volume/Concentration Calculator'),
           backgroundColor: const Color.fromRGBO(60, 180, 100, 1),
         ),
         body: MediaQuery(
           data: MediaQuery.of(context).copyWith(),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 200,
-                height: 200,
-                decoration: const BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage('assets/restore.png'),
+          child: SingleChildScrollView(
+            // Prevent overflow
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 200,
+                    height: 200,
+                    decoration: const BoxDecoration(
+                      image: DecorationImage(
+                        image: AssetImage('assets/tic.png'),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: substanceQuantityController,
+                    onChanged: (value) => changeUpToDateState(),
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Substance quantity (mg)',
+                      labelStyle:
+                          TextStyle(color: Color.fromRGBO(60, 180, 100, 1)),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide:
+                            BorderSide(color: Color.fromRGBO(60, 180, 100, 1)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.grey),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: liquidAddedController,
+                    onChanged: (value) => changeUpToDateState(),
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Amount of liquid added (ml)',
+                      labelStyle:
+                          TextStyle(color: Color.fromRGBO(60, 180, 100, 1)),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide:
+                            BorderSide(color: Color.fromRGBO(60, 180, 100, 1)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.grey),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: desiredConcentrationController,
+                    onChanged: (value) => changeUpToDateState(),
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Desired concentration per dose (mcg)',
+                      labelStyle:
+                          TextStyle(color: Color.fromRGBO(60, 180, 100, 1)),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide:
+                            BorderSide(color: Color.fromRGBO(60, 180, 100, 1)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.grey),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed:
+                        !resultUpToDate && areFieldsFilled ? calculate : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: resultUpToDate
+                          ? Colors.grey
+                          : const Color.fromRGBO(60, 180, 100, 1),
+                    ),
+                    child: !resultUpToDate && areFieldsFilled
+                        ? const Text('Calculate')
+                        : resultUpToDate && areFieldsFilled
+                            ? const Text('Already Calculated :)')
+                            : const Text('Please fill in all values'),
+                  ),
+                  const SizedBox(height: 20),
+                  resultUpToDate
+                      ? Text(
+                          'Volume needed: ${volume.toStringAsFixed(4)} ml (millilitres) [Not Rounded]')
+                      : const Text('Volume needed: ?'),
+                  const SizedBox(height: 20),
+                  resultUpToDate
+                      ? Text(
+                          'Measurement unit: $unitMarkerInt U (Units) [Rounded Up]')
+                      : const Text('Measurement unit: ?'),
+                ],
               ),
-              TextField(
-                controller: substanceQuantityController,
-                onChanged: (value) => changeUpToDateState(),
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Substance quantity (mg)', // Updated Label
-                  labelStyle: TextStyle(color: Color.fromRGBO(60, 180, 100, 1)),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Color.fromRGBO(60, 180, 100, 1)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: liquidAddedController,
-                onChanged: (value) => changeUpToDateState(),
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Amount of liquid added (ml)', // Updated Label
-                  labelStyle: TextStyle(color: Color.fromRGBO(60, 180, 100, 1)),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Color.fromRGBO(60, 180, 100, 1)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: desiredConcentrationController,
-                onChanged: (value) => changeUpToDateState(),
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Desired concentration per dose (mcg)', // Updated Label
-                  labelStyle: TextStyle(color: Color.fromRGBO(60, 180, 100, 1)),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Color.fromRGBO(60, 180, 100, 1)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: !resultUpToDate && areFieldsFilled ? calculate : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: resultUpToDate
-                      ? Colors.grey
-                      : const Color.fromRGBO(60, 180, 100, 1),
-                ),
-                child: !resultUpToDate && areFieldsFilled
-                    ? const Text('Calculate')
-                    : resultUpToDate && areFieldsFilled
-                        ? const Text('Already Calculated :)')
-                        : const Text('Please fill in all values'),
-              ),
-              const SizedBox(height: 20),
-              resultUpToDate
-                  ? Text(
-                      'Volume needed: ${volume.toStringAsFixed(4)} ml (millilitres) [Not Rounded]')
-                  : const Text('Volume needed: ?'),
-              const SizedBox(height: 20),
-              resultUpToDate
-                  ? Text(
-                      'Measurement unit: $unitMarkerInt U (Units) [Rounded Up]') // Updated Display Text
-                  : const Text('Measurement unit: ?'),
-            ],
+            ),
           ),
         ),
       ),
