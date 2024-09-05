@@ -4,13 +4,17 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class BusinessCardScreen extends StatefulWidget {
   final BusinessCard? existingCard;
   final Function(BusinessCard) onSave;
 
-  const BusinessCardScreen(
-      {super.key, this.existingCard, required this.onSave});
+  const BusinessCardScreen({
+    Key? key,
+    this.existingCard,
+    required this.onSave,
+  }) : super(key: key);
 
   @override
   BusinessCardScreenState createState() => BusinessCardScreenState();
@@ -32,8 +36,7 @@ class BusinessCardScreenState extends State<BusinessCardScreen> {
     super.initState();
     if (widget.existingCard != null) {
       _nameController.text = widget.existingCard!.name;
-      _businessNameController.text =
-          widget.existingCard!.businessName; // Load business name if available
+      _businessNameController.text = widget.existingCard!.businessName;
       _positionController.text = widget.existingCard!.position;
       _phoneController.text = widget.existingCard!.phone;
       _emailController.text = widget.existingCard!.email;
@@ -56,40 +59,140 @@ class BusinessCardScreenState extends State<BusinessCardScreen> {
   }
 
   Future<void> _pickLogoImage() async {
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _logoImage = File(pickedFile.path);
-      });
+    final status = await _requestPhotosPermission();
+    if (status.isGranted) {
+      try {
+        final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+        if (pickedFile != null) {
+          setState(() {
+            _logoImage = File(pickedFile.path);
+          });
+        }
+      } catch (e) {
+        _showErrorDialog('Error picking image: $e');
+      }
+    } else if (status.isPermanentlyDenied) {
+      _showPermissionPermanentlyDeniedDialog();
+    } else {
+      _showPermissionDeniedDialog();
     }
+  }
+
+  Future<PermissionStatus> _requestPhotosPermission() async {
+    PermissionStatus status = await Permission.photos.status;
+    if (status.isDenied) {
+      status = await Permission.photos.request();
+    }
+    return status;
+  }
+
+  void _showPermissionDeniedDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Permission Required'),
+          content: const Text(
+              'This app needs access to your photos to select a logo. Please grant permission in your device settings.'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: const Text('Open Settings'),
+              onPressed: () {
+                openAppSettings();
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showPermissionPermanentlyDeniedDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Permission Permanently Denied'),
+          content: const Text(
+              'You have permanently denied photo access permissions. Please go to your device settings to enable it manually.'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: const Text('Open Settings'),
+              onPressed: () {
+                openAppSettings();
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Error'),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<String> _saveImageLocally(File imageFile) async {
-    final directory = await getApplicationDocumentsDirectory();
-    String path =
-        '${directory.path}/${DateTime.now().millisecondsSinceEpoch}.png';
-    File newImage = await imageFile.copy(path);
-    return newImage.path;
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      String path =
+          '${directory.path}/${DateTime.now().millisecondsSinceEpoch}.png';
+      File newImage = await imageFile.copy(path);
+      return newImage.path;
+    } catch (e) {
+      _showErrorDialog('Error saving image: $e');
+      return '';
+    }
   }
 
   void _saveCard() async {
-    String? logoPath;
-    if (_logoImage != null) {
-      logoPath = await _saveImageLocally(_logoImage!);
+    try {
+      String? logoPath;
+      if (_logoImage != null) {
+        logoPath = await _saveImageLocally(_logoImage!);
+      }
+
+      BusinessCard newCard = BusinessCard(
+        name: _nameController.text,
+        businessName: _businessNameController.text,
+        position: _positionController.text,
+        phone: _phoneController.text,
+        email: _emailController.text,
+        website: _websiteController.text,
+        logoImagePath: logoPath,
+      );
+
+      widget.onSave(newCard);
+      Navigator.pop(context);
+    } catch (e) {
+      _showErrorDialog('Error saving card: $e');
     }
-
-    BusinessCard newCard = BusinessCard(
-      name: _nameController.text,
-      businessName: _businessNameController.text, // Save business name
-      position: _positionController.text,
-      phone: _phoneController.text,
-      email: _emailController.text,
-      website: _websiteController.text,
-      logoImagePath: logoPath,
-    );
-
-    widget.onSave(newCard);
-    Navigator.pop(context);
   }
 
   @override
@@ -130,8 +233,7 @@ class BusinessCardScreenState extends State<BusinessCardScreen> {
               ),
               TextField(
                 controller: _businessNameController,
-                decoration: const InputDecoration(
-                    labelText: 'Business Name'), // New field for business name
+                decoration: const InputDecoration(labelText: 'Business Name'),
               ),
               TextField(
                 controller: _positionController,
