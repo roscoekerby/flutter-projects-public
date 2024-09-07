@@ -1,0 +1,1 @@
+ /Users/roscoekerby/ROSCODE/flutter-projects-public/liftt/.dart_tool/flutter_build/9e12dcde8e1beb37212311fb930388e5/native_assets.yaml: 
