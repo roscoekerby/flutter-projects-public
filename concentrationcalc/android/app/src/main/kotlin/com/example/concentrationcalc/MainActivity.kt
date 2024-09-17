@@ -1,4 +1,4 @@
-package com.example.concentrationcalc
+package com.roscode.concentrationcalc
 
 import io.flutter.embedding.android.FlutterActivity
 
