@@ -11,10 +11,10 @@ class BusinessCardScreen extends StatefulWidget {
   final Function(BusinessCard) onSave;
 
   const BusinessCardScreen({
-    Key? key,
+    super.key,
     this.existingCard,
     required this.onSave,
-  }) : super(key: key);
+  });
 
   @override
   BusinessCardScreenState createState() => BusinessCardScreenState();
@@ -42,9 +42,22 @@ class BusinessCardScreenState extends State<BusinessCardScreen> {
       _emailController.text = widget.existingCard!.email;
       _websiteController.text = widget.existingCard!.website;
       if (widget.existingCard!.logoImagePath != null) {
-        _logoImage = File(widget.existingCard!.logoImagePath!);
+        _checkAndSetLogoImage(widget.existingCard!.logoImagePath!);
       }
     }
+  }
+
+  void _checkAndSetLogoImage(String path) {
+    File file = File(path);
+    file.exists().then((exists) {
+      if (exists) {
+        setState(() {
+          _logoImage = file;
+        });
+      } else {
+        _showErrorDialog('Logo image not found. Please select a new one.');
+      }
+    });
   }
 
   @override
@@ -175,7 +188,13 @@ class BusinessCardScreenState extends State<BusinessCardScreen> {
     try {
       String? logoPath;
       if (_logoImage != null) {
-        logoPath = await _saveImageLocally(_logoImage!);
+        if (await _logoImage!.exists()) {
+          logoPath = await _saveImageLocally(_logoImage!);
+        } else {
+          _showErrorDialog(
+              'Selected logo image no longer exists. Please choose a new one.');
+          return;
+        }
       }
 
       BusinessCard newCard = BusinessCard(
@@ -189,7 +208,9 @@ class BusinessCardScreenState extends State<BusinessCardScreen> {
       );
 
       widget.onSave(newCard);
-      Navigator.pop(context);
+      if (mounted) {
+        Navigator.pop(context);
+      }
     } catch (e) {
       _showErrorDialog('Error saving card: $e');
     }
@@ -214,17 +235,7 @@ class BusinessCardScreenState extends State<BusinessCardScreen> {
             children: [
               GestureDetector(
                 onTap: _pickLogoImage,
-                child: _logoImage != null
-                    ? Image.file(
-                        _logoImage!,
-                        height: 100,
-                      )
-                    : Container(
-                        height: 100,
-                        width: 100,
-                        color: Colors.grey[300],
-                        child: const Icon(Icons.add_a_photo),
-                      ),
+                child: _buildLogoWidget(),
               ),
               const SizedBox(height: 20),
               TextField(
@@ -262,6 +273,41 @@ class BusinessCardScreenState extends State<BusinessCardScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildLogoWidget() {
+    if (_logoImage != null) {
+      return FutureBuilder<bool>(
+        future: _logoImage!.exists(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+            if (snapshot.data == true) {
+              return Image.file(
+                _logoImage!,
+                height: 100,
+                errorBuilder: (context, error, stackTrace) {
+                  return _buildPlaceholderLogo();
+                },
+              );
+            } else {
+              return _buildPlaceholderLogo();
+            }
+          }
+          return const CircularProgressIndicator();
+        },
+      );
+    } else {
+      return _buildPlaceholderLogo();
+    }
+  }
+
+  Widget _buildPlaceholderLogo() {
+    return Container(
+      height: 100,
+      width: 100,
+      color: Colors.grey[300],
+      child: const Icon(Icons.add_a_photo),
     );
   }
 }

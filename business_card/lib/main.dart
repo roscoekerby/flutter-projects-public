@@ -26,11 +26,10 @@ class PermissionHandlerScreen extends StatefulWidget {
   const PermissionHandlerScreen({super.key});
 
   @override
-  _PermissionHandlerScreenState createState() =>
-      _PermissionHandlerScreenState();
+  PermissionHandlerScreenState createState() => PermissionHandlerScreenState();
 }
 
-class _PermissionHandlerScreenState extends State<PermissionHandlerScreen> {
+class PermissionHandlerScreenState extends State<PermissionHandlerScreen> {
   @override
   void initState() {
     super.initState();
@@ -52,10 +51,13 @@ class _PermissionHandlerScreenState extends State<PermissionHandlerScreen> {
 
     // If permission is granted, navigate to the main business card screen.
     if (status.isGranted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const BusinessCardListScreen()),
-      );
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (context) => const BusinessCardListScreen()),
+        );
+      }
     }
   }
 

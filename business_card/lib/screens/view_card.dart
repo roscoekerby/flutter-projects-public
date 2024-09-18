@@ -12,7 +12,7 @@ class ViewCardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(card.name),
+        title: Text(card.businessName),
       ),
       body: Center(
         child: LayoutBuilder(
@@ -39,11 +39,8 @@ class ViewCardScreen extends StatelessWidget {
                           if (card.logoImagePath != null)
                             Flexible(
                               flex: 2,
-                              child: Image.file(
-                                File(card.logoImagePath!),
-                                fit: BoxFit.contain,
-                                height: cardHeight * 0.3,
-                              ),
+                              child: _buildLogoImage(
+                                  card.logoImagePath!, cardHeight),
                             ),
                           const SizedBox(height: 8),
                           Flexible(
@@ -118,6 +115,26 @@ class ViewCardScreen extends StatelessWidget {
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildLogoImage(String imagePath, double cardHeight) {
+    return FutureBuilder<bool>(
+      future: File(imagePath).exists(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.done) {
+          if (snapshot.data == true) {
+            return Image.file(
+              File(imagePath),
+              fit: BoxFit.contain,
+              height: cardHeight * 0.3,
+            );
+          } else {
+            return const Icon(Icons.image_not_supported, size: 50);
+          }
+        }
+        return const CircularProgressIndicator();
+      },
     );
   }
 }
