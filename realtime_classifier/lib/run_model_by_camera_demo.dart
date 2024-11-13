@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:pytorch_lite/pytorch_lite.dart';
-import 'package:realtime_classifier/ui/box_widget.dart';
 import 'package:logger/logger.dart';
 
 import 'ui/camera_view.dart';
 
-class RunModelByCameraDemo extends StatefulWidget {
-  const RunModelByCameraDemo({super.key});
+class RunModelWithCamera extends StatefulWidget {
+  const RunModelWithCamera({super.key});
 
   @override
-  RunModelByCameraDemoState createState() => RunModelByCameraDemoState();
+  RunModelWithCameraState createState() => RunModelWithCameraState();
 }
 
 final logger = Logger();
 
-class RunModelByCameraDemoState extends State<RunModelByCameraDemo> {
+class RunModelWithCameraState extends State<RunModelWithCamera> {
   List<ResultObjectDetection>? results;
   Duration? objectDetectionInferenceTime;
 
@@ -34,8 +33,7 @@ class RunModelByCameraDemoState extends State<RunModelByCameraDemo> {
       ),
       body: Stack(
         children: <Widget>[
-          CameraView(resultsCallback, resultsCallbackClassification),
-          boundingBoxes2(results),
+          CameraView(resultsCallbackClassification),
           Align(
             alignment: Alignment.bottomCenter,
             child: DraggableScrollableSheet(
@@ -65,7 +63,7 @@ class RunModelByCameraDemoState extends State<RunModelByCameraDemo> {
                               if (classification != null)
                                 StatsRow('Classification:', classification!),
                               if (confidence != null)
-                                StatsRow('Confidence:', 
+                                StatsRow('Confidence:',
                                     '${(confidence! * 100).toStringAsFixed(2)}%'),
                               if (classificationInferenceTime != null)
                                 StatsRow('Classification Inference time:',
@@ -86,55 +84,6 @@ class RunModelByCameraDemoState extends State<RunModelByCameraDemo> {
         ],
       ),
     );
-  }
-
-  Widget boundingBoxes2(List<ResultObjectDetection>? results) {
-    if (results == null) {
-      return Container();
-    }
-    return Stack(
-      children: results.map((e) => BoxWidget(result: e)).toList(),
-    );
-  }
-
-  void resultsCallback(
-      List<ResultObjectDetection> results, Duration inferenceTime) {
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      this.results = results;
-      objectDetectionInferenceTime = inferenceTime;
-
-      // Update confidence only if we have results
-      if (results.isNotEmpty) {
-        // Get the highest confidence score from all results
-        confidence = results
-            .map((result) => result.score)
-            .reduce((curr, next) => curr > next ? curr : next);
-        
-        // Log the confidence value for debugging
-        logger.i('Confidence set to: $confidence');
-      } else {
-        confidence = null;
-        logger.i('No results, confidence set to null');
-      }
-
-      // Log all results for debugging
-      for (var element in results) {
-        logger.i({
-          "rect": {
-            "left": element.rect.left,
-            "top": element.rect.top,
-            "width": element.rect.width,
-            "height": element.rect.height,
-            "right": element.rect.right,
-            "bottom": element.rect.bottom,
-          },
-          "score": element.score,
-        });
-      }
-    });
   }
 
   void resultsCallbackClassification(

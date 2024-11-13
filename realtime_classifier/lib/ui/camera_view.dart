@@ -12,15 +12,15 @@ import 'camera_view_singleton.dart';
 /// [CameraView] sends each frame for inference
 class CameraView extends StatefulWidget {
   /// Callback to pass results after inference to [HomeView]
+  // final Function(
+  //         List<ResultObjectDetection> recognitions, Duration inferenceTime)
+  //     resultsCallback;
   final Function(
-          List<ResultObjectDetection> recognitions, Duration inferenceTime)
-      resultsCallback;
-  final Function(String classification, Duration inferenceTime, double confidence)
+          String classification, Duration inferenceTime, double confidence)
       resultsCallbackClassification;
 
   /// Constructor
-  const CameraView(this.resultsCallback, this.resultsCallbackClassification,
-      {super.key});
+  const CameraView(this.resultsCallbackClassification, {super.key});
   @override
   CameraViewState createState() => CameraViewState();
 }
@@ -41,7 +41,7 @@ class CameraViewState extends State<CameraView> with WidgetsBindingObserver {
   /// true when inference is ongoing
   bool predictingObjectDetection = false;
 
-  ModelObjectDetection? _objectModel;
+  // ModelObjectDetection? _objectModel;
   ClassificationModel? _imageModel;
 
   bool classification = false;
@@ -55,20 +55,12 @@ class CameraViewState extends State<CameraView> with WidgetsBindingObserver {
 
   //load your model
   Future loadModel() async {
-    // String pathImageModel = "assets/models/model_classification.pt";
-    String pathImageModel = "assets/models/model_resnet18_mobile.pt";
+    String pathImageModel = "assets/models/background_cat_dog_mobile_resnet18.pt";
 
-    // String pathCustomModel = "assets/models/custom_model.ptl";
-    // String pathObjectDetectionModel = "assets/models/yolov8s.torchscript";
     try {
       _imageModel = await PytorchLite.loadClassificationModel(
           pathImageModel, 224, 224, 3,
-          labelPath: "assets/labels/label_classification_imageNet.txt");
-      //_customModel = await PytorchLite.loadCustomModel(pathCustomModel);
-      // _objectModel = await PytorchLite.loadObjectDetectionModel(
-      //     pathObjectDetectionModel, 80, 640, 640,
-      //     labelPath: "assets/labels/labels_objectDetection_Coco.txt",
-      //     objectDetectionModelType: ObjectDetectionModelType.yolov8);
+          labelPath: "assets/labels/background_cat_dog_labels.txt");
     } catch (e) {
       if (e is PlatformException) {
         logger.e("only supported for android, Error is $e");
@@ -180,116 +172,83 @@ class CameraViewState extends State<CameraView> with WidgetsBindingObserver {
   }
 
   runClassification(CameraImage cameraImage) async {
-  if (predicting) {
-    logger.d("Prediction is already ongoing, skipping this frame.");
-    return;
-  }
-  if (!mounted) {
-    logger.w("Widget is not mounted, skipping classification.");
-    return;
-  }
-
-  logger.i("Starting classification on a new frame.");
-  setState(() {
-    predicting = true;
-  });
-
-  if (_imageModel != null) {
-    logger.i("Model is loaded, proceeding with inference.");
-
-    // Start the stopwatch
-    Stopwatch stopwatch = Stopwatch()..start();
-    logger.d("Stopwatch started for inference timing.");
-
-    try {
-      // Retrieve prediction probabilities
-      List<double> predictionProbabilities = await _imageModel!
-          .getCameraImagePredictionProbabilities(cameraImage, rotation: _camFrameRotation);
-      
-      logger.d("Received prediction probabilities: $predictionProbabilities");
-
-      // Check if any probabilities were returned
-      if (predictionProbabilities.isEmpty) {
-        logger.w("Prediction probabilities are empty. Skipping this frame.");
-        setState(() {
-          predicting = false;
-        });
-        return;
-      }
-
-      // Find the maximum probability and corresponding label
-      double maxConfidence = predictionProbabilities.reduce((a, b) => a > b ? a : b);
-      int maxConfidenceIndex = predictionProbabilities.indexOf(maxConfidence);
-      String imageClassification = _imageModel!.labels[maxConfidenceIndex];
-
-      logger.i("Highest confidence score: $maxConfidence for label: $imageClassification");
-
-      // Stop the stopwatch
-      stopwatch.stop();
-      logger.d("Stopwatch stopped. Inference time: ${stopwatch.elapsedMilliseconds} ms");
-
-      // Send results to the callback
-      widget.resultsCallbackClassification(
-          imageClassification, stopwatch.elapsed, maxConfidence);
-
-      logger.i("Results callback called with classification: $imageClassification, "
-          "time: ${stopwatch.elapsedMilliseconds} ms, confidence: $maxConfidence");
-    } catch (e) {
-      logger.e("Error during classification: $e");
-    }
-  } else {
-    logger.e("Model is not loaded. Cannot perform classification.");
-  }
-
-  if (!mounted) {
-    logger.w("Widget is not mounted after classification. Skipping state update.");
-    return;
-  }
-
-  setState(() {
-    predicting = false;
-  });
-
-  logger.i("Classification completed. Ready for next frame.");
-}
-
-
-
-  Future<void> runObjectDetection(CameraImage cameraImage) async {
-    if (predictingObjectDetection) {
+    if (predicting) {
+      logger.d("Prediction is already ongoing, skipping this frame.");
       return;
     }
     if (!mounted) {
+      logger.w("Widget is not mounted, skipping classification.");
       return;
     }
 
+    logger.i("Starting classification on a new frame.");
     setState(() {
-      predictingObjectDetection = true;
+      predicting = true;
     });
-    if (_objectModel != null) {
+
+    if (_imageModel != null) {
+      logger.i("Model is loaded, proceeding with inference.");
+
       // Start the stopwatch
       Stopwatch stopwatch = Stopwatch()..start();
+      logger.d("Stopwatch started for inference timing.");
 
-      List<ResultObjectDetection> objDetect =
-          await _objectModel!.getCameraImagePrediction(
-        cameraImage,
-        rotation: _camFrameRotation,
-        minimumScore: 0.3,
-        iOUThreshold: 0.3,
-      );
+      try {
+        // Retrieve prediction probabilities
+        List<double> predictionProbabilities = await _imageModel!
+            .getCameraImagePredictionProbabilities(cameraImage,
+                rotation: _camFrameRotation);
 
-      // Stop the stopwatch
-      stopwatch.stop();
-      // print("data outputted $objDetect");
-      widget.resultsCallback(objDetect, stopwatch.elapsed);
+        logger.d("Received prediction probabilities: $predictionProbabilities");
+
+        // Check if any probabilities were returned
+        if (predictionProbabilities.isEmpty) {
+          logger.w("Prediction probabilities are empty. Skipping this frame.");
+          setState(() {
+            predicting = false;
+          });
+          return;
+        }
+
+        // Find the maximum probability and corresponding label
+        double maxConfidence =
+            predictionProbabilities.reduce((a, b) => a > b ? a : b);
+        int maxConfidenceIndex = predictionProbabilities.indexOf(maxConfidence);
+        String imageClassification = _imageModel!.labels[maxConfidenceIndex];
+
+        logger.i(
+            "Highest confidence score: $maxConfidence for label: $imageClassification");
+
+        // Stop the stopwatch
+        stopwatch.stop();
+        logger.d(
+            "Stopwatch stopped. Inference time: ${stopwatch.elapsedMilliseconds} ms");
+
+        // Send results to the callback
+        widget.resultsCallbackClassification(
+            imageClassification, stopwatch.elapsed, maxConfidence);
+
+        logger.i(
+            "Results callback called with classification: $imageClassification, "
+            "time: ${stopwatch.elapsedMilliseconds} ms, confidence: $maxConfidence");
+      } catch (e) {
+        logger.e("Error during classification: $e");
+      }
+    } else {
+      logger.e("Model is not loaded. Cannot perform classification.");
     }
+
     if (!mounted) {
+      logger.w(
+          "Widget is not mounted after classification. Skipping state update.");
       return;
     }
 
     setState(() {
-      predictingObjectDetection = false;
+      predicting = false;
     });
+
+    logger.i("Classification completed. Ready for next frame.");
   }
 
   /// Callback to receive each frame [CameraImage] perform inference on it
@@ -304,7 +263,6 @@ class CameraViewState extends State<CameraView> with WidgetsBindingObserver {
     // log("Converted camera image");
 
     runClassification(cameraImage);
-    runObjectDetection(cameraImage);
 
     // log("done prediction camera image");
     // Make sure we are still mounted, the background thread can return a response after we navigate away from this
