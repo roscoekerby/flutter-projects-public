@@ -90,6 +90,8 @@ This project is open-source. Ensure you have the right to use and distribute any
 
 - Flutter for its cross-platform framework.
 - Contributors to the `pytorch_lite` package for making on-device ML feasible.
+- https://www.kaggle.com/datasets/abhinavnayak/catsvdogs-transformed?select=train_transformed
+- https://www.kaggle.com/datasets/pankajkumar2002/random-image-sample-dataset
 
 ## Contact
 
