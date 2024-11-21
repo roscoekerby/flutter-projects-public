@@ -28,6 +28,8 @@ class BusinessCardScreenState extends State<BusinessCardScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _websiteController = TextEditingController();
+  final TextEditingController _qrCodeWebsiteController =
+      TextEditingController();
 
   final picker = ImagePicker();
 
@@ -204,6 +206,7 @@ class BusinessCardScreenState extends State<BusinessCardScreen> {
         phone: _phoneController.text,
         email: _emailController.text,
         website: _websiteController.text,
+        qrCodeWebsite: _qrCodeWebsiteController.text,
         logoImagePath: logoPath,
       );
 
@@ -262,10 +265,14 @@ class BusinessCardScreenState extends State<BusinessCardScreen> {
                 controller: _websiteController,
                 decoration: const InputDecoration(labelText: 'Website'),
               ),
+              TextField(
+                controller: _qrCodeWebsiteController,
+                decoration: const InputDecoration(labelText: 'QR Code Website'),
+              ),
               const SizedBox(height: 20),
-              if (_websiteController.text.isNotEmpty)
+              if (_qrCodeWebsiteController.text.isNotEmpty)
                 QrImageView(
-                  data: _websiteController.text,
+                  data: _qrCodeWebsiteController.text,
                   version: QrVersions.auto,
                   size: 200.0,
                 ),

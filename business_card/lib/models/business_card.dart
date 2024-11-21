@@ -5,6 +5,7 @@ class BusinessCard {
   String phone;
   String email;
   String website;
+  String qrCodeWebsite;
   String? logoImagePath;
 
   BusinessCard({
@@ -14,6 +15,7 @@ class BusinessCard {
     required this.phone,
     required this.email,
     required this.website,
+    required this.qrCodeWebsite,
     this.logoImagePath,
   });
 
@@ -26,6 +28,7 @@ class BusinessCard {
       'phone': phone,
       'email': email,
       'website': website,
+      'qrCodeWebsite': qrCodeWebsite,
       'logoImagePath': logoImagePath,
     };
   }
@@ -39,6 +42,7 @@ class BusinessCard {
       phone: map['phone'],
       email: map['email'],
       website: map['website'],
+      qrCodeWebsite: map['qrCodeWebsite'],
       logoImagePath: map['logoImagePath'],
     );
   }
