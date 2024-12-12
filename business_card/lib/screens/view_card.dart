@@ -147,7 +147,7 @@ class ViewCardScreenState extends State<ViewCardScreen> {
               },
               child: Center(
                 child: QrImageView(
-                  data: widget.card.website,
+                  data: widget.card.qrCodeWebsite,
                   version: QrVersions.auto,
                   size: cardHeight * 0.5, // Ensure QR code fits perfectly
                 ),
@@ -194,7 +194,7 @@ class ViewCardScreenState extends State<ViewCardScreen> {
           child: Container(
             padding: const EdgeInsets.all(20),
             child: QrImageView(
-              data: widget.card.website,
+              data: widget.card.qrCodeWebsite,
               version: QrVersions.auto,
               size: 300, // Large size for expanded QR code
             ),
